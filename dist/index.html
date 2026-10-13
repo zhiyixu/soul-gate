@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101c1b"><meta name="description" content="众生之门主题横版像素冒险试玩。化身小猫，驾驭金属与冰，穿越森林，开启灵境之门。">
+  <title>众生之门 · 灵境初行</title><link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23101c1b'/%3E%3Cpath d='M6 9l6 4h8l6-4v15H6z' fill='%23aaddad'/%3E%3Cpath d='M11 18h3v3h-3zm7 0h3v3h-3z' fill='%23101c1b'/%3E%3C/svg%3E">
+</head>
+<body>
+<header class="header"><a class="brand" href="./" aria-label="众生之门首页"><span class="brand-mark">✧</span><span>众生之门<small>SPIRIT GATE</small></span></a><nav><span class="edition"><i></i> 森林试炼 · v0.1</span><button class="text-button" id="help-button">玩法指南 <span>↗</span></button></nav></header>
+<main>
+  <section class="intro"><div><p class="eyebrow">CHAPTER 01 / THE AWAKENING</p><h1>灵境初行<span>每一次相遇，都是新的可能。</span></h1></div><div class="intro-right"><span class="pill">单人冒险</span><span class="pill">横版像素</span><span class="version">第一阶段 · 核心原型</span></div></section>
+  <section class="game-shell" id="game-shell" aria-label="横版冒险游戏">
+    <canvas id="game" width="960" height="540" tabindex="0" aria-label="森林游戏画面，A D 移动，空格跳跃，J 攻击，K 御金，L 凝冰，Shift 冲刺"></canvas>
+    <div class="hud" id="hud"><div class="player-card"><div class="cat-icon"><i></i><b></b></div><div class="player-bars"><div class="player-caption"><strong>旅者 · 猫</strong><span id="hp-label">100 / 100</span></div><div class="bar health"><i id="health-bar"></i></div><div class="bar energy"><i id="energy-bar"></i></div></div></div><div class="hud-right"><span class="shard-count">◈ <strong id="shard-count">0</strong><span>/ 3</span></span><button id="pause-button" class="hud-button" aria-label="暂停游戏">Ⅱ</button></div></div>
+    <div class="zone-label" id="zone-label">01 <span>出生之林</span></div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="game-overlay" id="overlay"><div class="start-content"><span class="start-tag">一场关于探索与成长的冒险</span><h2>穿过森林，<br>遇见另一种自己。</h2><p>化身灵猫，驾驭金属与冰。<br>寻回三枚灵印，唤醒古树深处的门。</p><button class="primary-button" id="start-button">进入灵境 <span>→</span></button><div class="start-note">约 5–10 分钟 · 键盘或触屏操作</div></div><div class="start-bottom"><span>◈ &nbsp; 众生之门主题玩法实验</span><span>戴上耳机，出发吧 &nbsp; ♪</span></div></div>
+    <div class="touch-controls" id="touch-controls"><div class="touch-move"><button data-hold="left" aria-label="向左移动">◀</button><button data-hold="right" aria-label="向右移动">▶</button></div><div class="touch-actions"><button data-action="claw">爪</button><button data-action="metal">金</button><button data-action="ice">冰</button><button data-action="dash">冲</button><button data-action="jump" class="touch-jump">↑</button></div></div>
+    <div class="game-bottom"><span id="game-status"><i></i> 灵境等待开启</span><div><button id="sound-button" aria-label="打开音效" title="音效开关">♪ <span>音效关</span></button><button id="fullscreen-button" aria-label="全屏游戏" title="全屏">⛶</button></div></div>
+  </section>
+  <section class="dashboard"><div class="journey"><div class="section-caption"><span>此行目标</span><span id="journey-text">寻回灵印 · 开启灵门</span></div><div class="route"><div class="route-line"><i id="route-fill"></i></div><div class="route-stop active" data-zone="0"><b></b><span>出生之林</span></div><div class="route-stop" data-zone="1"><b></b><span>镜水溪</span></div><div class="route-stop" data-zone="2"><b></b><span>古树庭</span></div><div class="route-stop" data-zone="3"><b>✧</b><span>灵境之门</span></div></div></div><div class="skill-tray"><button class="skill" data-action="claw"><span class="skill-icon claw-icon">爪</span><span><strong>灵爪</strong><small>近身攻击</small></span><kbd>J</kbd><em class="cooldown" data-cd="claw"></em></button><button class="skill" data-action="metal"><span class="skill-icon metal-icon">金</span><span><strong>御金</strong><small>远程破敌</small></span><kbd>K</kbd><em class="cooldown" data-cd="metal"></em></button><button class="skill" data-action="ice"><span class="skill-icon ice-icon">冰</span><span><strong>凝冰</strong><small>冻结敌人与河面</small></span><kbd>L</kbd><em class="cooldown" data-cd="ice"></em></button></div></section>
+  <section class="lower"><p><kbd>A</kbd><kbd>D</kbd> 移动 <span>·</span> <kbd>Space</kbd> 二段跳 <span>·</span> <kbd>Shift</kbd> 冲刺 <span>·</span> <kbd>Esc</kbd> 暂停</p><button class="text-button" id="restart-button">↻ 重新开始</button></section>
+  <footer><p>灵境初行 <span>/</span> 众生之门主题 · 非官方玩法原型</p><p id="record">慢慢探索，也是一种冒险。</p></footer>
+</main>
+<dialog id="help-dialog"><button class="close-dialog" id="close-help" aria-label="关闭指南">×</button><p class="eyebrow">FIELD GUIDE</p><h2>初入灵境</h2><p class="dialog-subtitle">找到三枚发光灵印，击败森林守门者，走进最右侧的传送门。</p><div class="help-grid"><div><b>01 / 灵活移动</b><p>A、D 或方向键移动；空格二段跳；Shift 向面朝方向冲刺。树枝可作为落脚点。</p></div><div><b>02 / 驾驭灵力</b><p>J 近战。K 发射金属飞刃。L 冻结敌人；在镜水溪附近施放，还能暂时冻结河面。蓝色灵力条会自动恢复。</p></div><div><b>03 / 留意环境</b><p>树冠藏着灵印，河流有冰面与上方两条路线。靠近林间石碑可激活检查点。</p></div><div><b>04 / 再试一次</b><p>生命耗尽后可从检查点复苏，保留本次收集。重新开始会重置整局；通关纪录仅保存在当前浏览器。</p></div></div><button class="primary-button" id="help-done">知道了，出发 <span>→</span></button></dialog>
+<script type="module" src="./main.js"></script>
+</body></html>

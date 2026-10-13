@@ -1,0 +1,41 @@
+export const constants = Object.freeze({ WIDTH:3600, HEIGHT:540, GROUND:440, GRAVITY:1450, SPEED:225, JUMP:530, RIVER_START:1000, RIVER_END:1260, PORTAL_X:3460 });
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+const center=o=>({x:o.x+o.w/2,y:o.y+o.h/2});
+function say(g,text,seconds=3){g.message=text;g.messageUntil=g.time+seconds;}
+function enemy(x,y,type='wisp'){const boss=type==='boss';return {x,y,w:boss?76:34,h:boss?84:34,hp:boss?140:30,maxHp:boss?140:30,type,face:-1,home:x,vx:0,vy:0,hitUntil:0,attackAt:0,phase:0,frozenUntil:0,dead:false};}
+export function createGame(){return {width:3600,height:540,player:{x:110,y:400,w:28,h:30,vx:0,vy:0,hp:100,maxHp:100,energy:100,maxEnergy:100,face:1,grounded:false,jumps:0,invuln:0,attackUntil:0,dashUntil:0},platforms:[{x:0,y:440,w:1000,h:100,type:'ground'},{x:1260,y:440,w:2340,h:100,type:'ground'},...[[380,370,145],[580,335,145],[820,370,110],[900,335,140],[1080,275,150],[1240,345,160],[1490,310,175],[1790,360,150],[2040,315,150],[2390,370,160],[2580,345,170],[2840,370,125]].map(([x,y,w])=>({x,y,w,h:16,type:'branch'}))],enemies:[enemy(430,406),enemy(770,406,'guardian'),enemy(1440,406),enemy(1890,406,'guardian'),enemy(2310,406),enemy(2780,406,'guardian'),enemy(3080,356,'boss')],projectiles:[],pickups:[{x:642,y:305,type:'shard',collected:false},{x:1580,y:280,type:'shard',collected:false},{x:2650,y:315,type:'shard',collected:false}],particles:[],time:0,status:'ready',shards:0,checkpoint:{x:110,y:400},message:'森林试炼：寻找三枚灵印，唤醒灵境之门。',messageUntil:6,kills:0,cooldowns:{claw:0,metal:0,ice:0,dash:0},iceBridgeUntil:0,bossDefeated:false,events:[],riverHint:false,bossHint:false,checkpointTaken:false};}
+export function resetGame(g){Object.assign(g,createGame());return g;}
+function burst(g,x,y,color,count=10){for(let i=0;i<count;i++){const angle=i/count*Math.PI*2;g.particles.push({x,y,vx:Math.cos(angle)*(40+i%4*22),vy:Math.sin(angle)*90-30,life:.6,maxLife:.6,color,size:3});}}
+function hurtEnemy(g,e,amount){if(e.dead)return;e.hp=Math.max(0,e.hp-amount);e.hitUntil=g.time+.16;burst(g,e.x+e.w/2,e.y+e.h/2,e.type==='boss'?'#ffb46d':'#b2eb94',6);g.events.push('hit');if(e.hp===0){e.dead=true;g.kills++;g.player.energy=Math.min(100,g.player.energy+12);if(e.type==='boss'){g.bossDefeated=true;say(g,'守门者已平息。集齐三枚灵印，前往右侧灵境之门。',6);g.events.push('boss');}else say(g,'击退林间灵影 · 灵力恢复',1.4);}}
+function damage(g,n,sourceX){const p=g.player;if(p.invuln>0||g.status!=='playing')return;p.hp=Math.max(0,p.hp-n);p.invuln=1;p.vx=(p.x<sourceX?-1:1)*230;p.vy=-170;g.events.push('hurt');burst(g,p.x+14,p.y+15,'#f3a080');if(p.hp===0){g.status='dead';say(g,'试炼尚未结束。可从灵泉继续，已收集灵印保留。',999);}}
+function spawnProjectile(g,type,owner,x,y,vx,vy=0){g.projectiles.push({x,y,vx,vy,type,owner,w:type==='hostile'?14:12,h:type==='hostile'?14:8,life:type==='hostile'?4:1.25,hitIds:[],originX:x});}
+export function act(g,action){const p=g.player;
+ if(action==='restart'){resetGame(g);g.status='playing';return;}
+ if(action==='start'){if(g.status==='ready')g.status='playing';return;}
+ if(action==='pause'){if(g.status==='playing')g.status='paused';else if(g.status==='paused')g.status='playing';return;}
+ if(action==='respawn'&&g.status==='dead'){Object.assign(p,{x:g.checkpoint.x,y:g.checkpoint.y,vx:0,vy:0,hp:100,energy:100,invuln:1.5,jumps:0,dashUntil:0});g.status='playing';g.projectiles=[];const boss=g.enemies.find(e=>e.type==='boss');if(boss&&!boss.dead){boss.hp=boss.maxHp;boss.x=boss.home;boss.attackAt=g.time+1;}say(g,'从灵泉继续 · 灵印已保留');return;}
+ if(g.status!=='playing')return;
+ if(action==='jump'&&p.jumps<2){p.vy=p.jumps===0?-530:-490;p.jumps++;p.grounded=false;g.events.push('jump');burst(g,p.x+14,p.y+30,'#bce8d4',5);}
+ if(action==='dash'&&g.cooldowns.dash<=0){p.dashUntil=g.time+.16;p.invuln=Math.max(p.invuln,.18);p.vx=p.face*690;p.vy=0;g.cooldowns.dash=.85;g.events.push('dash');}
+ if(action==='claw'&&g.cooldowns.claw<=0){g.cooldowns.claw=.3;p.attackUntil=g.time+.17;const box={x:p.face>0?p.x+10:p.x-60,y:p.y-8,w:78,h:53};for(const e of g.enemies)if(!e.dead&&overlaps(box,e))hurtEnemy(g,e,18);g.events.push('claw');}
+ if((action==='metal'||action==='ice')&&g.cooldowns[action]<=0){const cost=action==='metal'?16:24;if(p.energy<cost){say(g,'灵力不足，稍作游走即可恢复。',1.5);return;}p.energy-=cost;g.cooldowns[action]=action==='metal'?.52:1.3;spawnProjectile(g,action,'player',p.x+14+p.face*18,p.y+12,p.face*(action==='metal'?590:440));g.events.push(action);if(action==='ice'&&p.x>780&&p.x<1480){g.iceBridgeUntil=g.time+9;if(!g.platforms.some(z=>z.type==='ice'))g.platforms.push({x:1000,y:440,w:260,h:18,type:'ice'});say(g,'冰桥凝成 · 持续 9 秒，可再次施法续时',3);}}
+}
+function update(g,input,dt){g.time+=dt;const p=g.player;for(const k in g.cooldowns)g.cooldowns[k]=Math.max(0,g.cooldowns[k]-dt);p.invuln=Math.max(0,p.invuln-dt);p.energy=Math.min(100,p.energy+13*dt);
+ if(g.iceBridgeUntil&&g.time>=g.iceBridgeUntil){g.platforms=g.platforms.filter(z=>z.type!=='ice');g.iceBridgeUntil=0;}
+ const move=Number(!!input.right)-Number(!!input.left);if(move)p.face=move;if(g.time>=p.dashUntil){p.vx=move*constants.SPEED;p.vy+=constants.GRAVITY*dt;}else p.vx=p.face*690;
+ const oldBottom=p.y+p.h;p.x=clamp(p.x+p.vx*dt,0,g.width-p.w);p.y+=p.vy*dt;p.grounded=false;
+ for(const z of g.platforms){if(p.vy>=0&&oldBottom<=z.y+1&&p.y+p.h>=z.y&&p.x+p.w>z.x&&p.x<z.x+z.w){p.y=z.y-p.h;p.vy=0;p.grounded=true;p.jumps=0;}}
+ if(p.y>590){p.hp=0;g.status='dead';say(g,'落入深水。可从灵泉继续，灵印不会丢失。',999);return;}
+ if(p.x>780&&!g.riverHint){g.riverHint=true;say(g,'前方深水：释放冰灵术架桥，或二段跳穿过树冠。',5);}
+ if(p.x>=1730&&!g.checkpointTaken){g.checkpointTaken=true;g.checkpoint={x:1730,y:400};p.hp=100;p.energy=100;say(g,'灵泉已激活 · 生命与灵力恢复，重生位置已记录',5);g.events.push('checkpoint');}
+ for(const item of g.pickups){if(!item.collected&&Math.hypot(p.x+14-item.x,p.y+15-item.y)<35){item.collected=true;g.shards++;burst(g,item.x,item.y,'#a0ffe0',16);say(g,`获得灵印 ${g.shards}/3${g.shards===3?' · 前往森林深处挑战守门者':''}`,3);g.events.push('shard');}}
+ for(const e of g.enemies){if(e.dead)continue;const distance=p.x-e.x;e.face=distance<0?-1:1;if(e.frozenUntil>g.time){if(overlaps(p,e))damage(g,e.type==='boss'?22:12,e.x);continue;}if(e.type==='boss'){if(Math.abs(distance)<640){if(!g.bossHint){g.bossHint=true;say(g,'守门者苏醒：留意灵弹，用冲刺躲开攻击。',4);}e.x=clamp(e.x+Math.sign(distance)*22*dt,2980,3290);if(g.time>e.attackAt){const a=center(e),b=center(p),len=Math.hypot(b.x-a.x,b.y-a.y);spawnProjectile(g,'hostile','enemy',a.x,a.y,(b.x-a.x)/len*210,(b.y-a.y)/len*210);if(e.hp<70)spawnProjectile(g,'hostile','enemy',a.x,a.y,(b.x-a.x)/len*170,(b.y-a.y)/len*170-65);e.attackAt=g.time+(e.hp<70?1.05:1.7);g.events.push('bossAttack');}}}else {const aggro=Math.abs(distance)<270;const speed=e.type==='guardian'?45:64;e.x+=((aggro?Math.sign(distance):Math.cos(g.time+e.home)*.7)*speed*dt);e.x=clamp(e.x,e.home-100,e.home+100);if(e.x<1000&&e.x+e.w>985)e.x=950;if(e.x>=1000&&e.x<1260)e.x=1260;}
+ if(overlaps(p,e))damage(g,e.type==='boss'?22:12,e.x);}
+ if(g.status!=='playing')return;
+ for(const shot of g.projectiles){shot.x+=shot.vx*dt;shot.y+=shot.vy*dt;shot.life-=dt;if(shot.owner==='player'){for(let i=0;i<g.enemies.length;i++){const e=g.enemies[i];if(!e.dead&&!shot.hitIds.includes(i)&&overlaps(shot,e)){hurtEnemy(g,e,shot.type==='metal'?24:12);shot.hitIds.push(i);if(shot.type==='ice'){shot.life=0;e.frozenUntil=g.time+(e.type==='boss'?.8:1.8);e.attackAt=Math.max(e.attackAt,e.frozenUntil);break;}}}}else if(overlaps(shot,p)){damage(g,14,shot.x);shot.life=0;if(g.status!=='playing')return;}}
+ g.projectiles=g.projectiles.filter(s=>s.life>0&&s.x>-50&&s.x<3650);for(const z of g.particles){z.x+=z.vx*dt;z.y+=z.vy*dt;z.vy+=140*dt;z.life-=dt;}g.particles=g.particles.filter(z=>z.life>0);
+ if(p.x>3390){if(g.shards===3&&g.bossDefeated){g.status='won';say(g,'森林试炼完成 · 灵境之门已开启',999);g.events.push('win');}else if(g.time>g.messageUntil)say(g,g.shards<3?`灵境之门还需要 ${3-g.shards} 枚灵印。沿途树冠上有微光。`:'先平息守门者，才能开启灵境之门。',3);}
+}
+export function step(g,input={},dt=1/60){g.events=[];if(g.status!=='playing')return;let remaining=clamp(Number.isFinite(dt)?dt:0,0,.1);while(remaining>0&&g.status==='playing'){const slice=Math.min(remaining,1/120);update(g,input,slice);remaining-=slice;}}
+export function getProgress(g){return {shards:g.shards,totalShards:3,bossDefeated:g.bossDefeated,kills:g.kills,checkpoint:g.checkpointTaken};}
